@@ -1,0 +1,9 @@
+# intel c compiler for emt64 hosts
+CC	= icc
+COPTS	= -vec-report -opt-report -parallel -fast
+COPTS	= -vec-report -opt-report -parallel -O2 -xT
+COPTS	= -O3 -xT -ipo -no-prec-div -unroll-loops0 -vec-report -opt-report
+COPTS	= -parallel -O3 -xT -ipo 
+COPTS	= -parallel -O2 -xT
+
+include Makefile.core

@@ -1,0 +1,9 @@
+# GNU c compiler
+CC	= gcc
+COPTS	= -O3 -Wall -pg -m64
+COPTS	= -O3 -Wall -m64
+COPTS	= -g -Wall -m64
+
+LIBS = -lm
+
+include Makefile.core

@@ -1,0 +1,42 @@
+CINCLUDE = -I.
+
+CFLAGS	= $(COPTS) $(CINCLUDE)
+
+# sources and object lists
+SRCS	= error.c memory.c util.c fasta.c fastq.c pctool.c hash.c oligo_freq.c gff.c gc_scan.c nsplit.c
+OBJS	= $(SRCS:.c=.o)
+PIC_OBJS= $(OBJS:.o=_PIC.o)
+AR	= util.a
+#SO	= util.so
+BINS	= $(AR) test $(SO) 
+
+default: all
+
+all: $(BINS)
+
+.c.o:
+	$(CC) $(CFLAGS) -c $< -o $@
+
+%_PIC.o: %.c
+	$(CC) $(CFLAGS) -fPIC -c $< -o $@
+
+util.so: $(PIC_OBJS) 
+	$(CC) $(CFLAGS) -shared $(PIC_OBJS) -o $@
+
+util.a: $(OBJS) 
+	ar rc $@ $(OBJS)
+	ranlib $@
+
+test: $(AR) test.c
+	$(CC) $(CFLAGS) test.c $(AR) -o $@ -lz $(LIBS)
+
+Makefile.depend:
+	touch Makefile.depend
+
+depend: Makefile.depend
+	makedepend -fMakefile.depend -- $(CFLAGS) -- $(SRCS)
+
+clean: depend
+	/bin/rm -rf $(BINS) $(OBJS) $(PIC_OBJS)
+
+include Makefile.depend

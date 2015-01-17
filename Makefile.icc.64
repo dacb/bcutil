@@ -1,0 +1,10 @@
+# intel c compiler, standard 64 bit for amd and intel
+CC	= icc
+COPTS	= -vec-report -opt-report -parallel -fast
+COPTS	= -vec-report -opt-report -parallel -O2 -xT
+COPTS	= -vec-report -opt-report -parallel -QxW -Qipo -O3
+COPTS	= -parallel -xW -ipo -O3
+COPTS	= -ipo -O3
+COPTS	= -xW -ipo -O3
+
+include Makefile.core
