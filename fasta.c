@@ -49,7 +49,7 @@ struct util_ptr_list *fasta_read(char *filename) {
 	gzFile *gz;
 	struct util_ptr_list *seqs;
 	char line[MAX_FASTA_LINE], line_sub[MAX_FASTA_LINE];
-	int in_seq = 0, line_no = 0;
+	int in_seq = 0, line_no = 0, current_size, seqlen;
 	struct fasta *seq;
 
 	if ((gz = gzopen(filename, "rb")) == NULL) {
@@ -67,8 +67,10 @@ struct util_ptr_list *fasta_read(char *filename) {
 			if (in_seq)
 				util_ptr_list_add_ptr(seqs, seq);
 			seq = fasta_new(line);
-			seq->seq = (char *)new(sizeof(char));
+			current_size = MAX_FASTA_LINE;
+			seq->seq = (char *)new(sizeof(char) * current_size);
 			seq->seq[0] = '\0';
+			seqlen = 0;
 			in_seq = 1;
 #if 0
 			/* enforce uniqueness of uid */
@@ -84,7 +86,7 @@ struct util_ptr_list *fasta_read(char *filename) {
 #endif
 		} else {
 			if (in_seq) {
-				int i, j, line_len = strlen(line);
+				int i, j, k, line_len = strlen(line);
 				size_t new_size;
 				/* find first non whitespace */
 				for (j = 0; j < line_len && (line[j] == ' ' || line[j] == '\t'); ++j);
@@ -92,9 +94,17 @@ struct util_ptr_list *fasta_read(char *filename) {
 				for (i = j; i < line_len && !isspace(line[i]); ++i)
 					line_sub[i - j] = line[i];
 				line_sub[i - j] = '\0';
-				new_size = ((i - j) + strlen(seq->seq) + 1) * sizeof(char);
-				seq->seq = (char *)renew(seq->seq, new_size);
-				strcat(seq->seq, line_sub);
+				new_size = ((i - j) + seqlen + 1) * sizeof(char);
+				if (new_size > current_size) {
+					while (new_size > current_size)
+						current_size *= 2;
+					seq->seq = (char *)renew(seq->seq, current_size);
+				}
+				//strcat(seq->seq, line_sub);
+				for (k = 0; k < (i - j); ++k) {
+					seq->seq[k + seqlen] = line_sub[k];
+				}
+				seqlen = k + seqlen;
 			} else
 				warning("%s: ignored contents of line no. %d\n", func_text, line_no);
 		}

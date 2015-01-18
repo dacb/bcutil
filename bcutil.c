@@ -22,6 +22,7 @@ int test_aacomp(int argc, char *argv[]);
 int test_gc_scan(int argc, char *argv[]);
 int test_nsplit(int argc, char *argv[]);
 int test_pairwise_identity(int argc, char *argv[]);
+int test_get_upstream(int argc, char *argv[]);
 
 struct unit_tests {
 	char	*name;
@@ -36,6 +37,7 @@ struct unit_tests {
 	{ "gc_scan",		&test_gc_scan }, \
 	{ "nsplit",		&test_nsplit }, \
 	{ "pairwise_identity",	&test_pairwise_identity }, \
+	{ "get_upstream", &test_get_upstream }, \
 	{ NULL,			NULL } /* end marker */ \
 };
 
@@ -53,6 +55,69 @@ int main(int argc, char *argv[]) {
 	for (i = 0; unit_tests[i].name != NULL; ++i)
 		warning("\t%s\n", unit_tests[i].name);
 	exit(EXIT_FAILURE);
+}
+
+int test_get_upstream(int argc, char *argv[]) {
+	int i;
+	gff_t *gf;
+	struct util_ptr_list *seqs, *outseqs;
+
+	if (argc != 4)
+		fatal_error("usage: %s %s <gff3 filename> <fasta filename (may be gzipped)>\n", argv[0], argv[1]);
+
+	gf = gffopenreadclose(argv[2]);
+	if (!gf) {
+		warning("%s: an error occurred reading the GFF file '%s'\n", argv[0], argv[2]);
+		return EXIT_FAILURE;
+	}
+	printf("%s: found %d gene features in GFF file '%s'\n", argv[0], gf->genes, argv[2]);
+	seqs = fasta_read(argv[3]);
+	printf("%s: found %d sequences in fasta file '%s'\n", argv[0], seqs->ps, argv[3]);
+
+	const int offset = -2;
+	const int max = 10;
+	int idxstart, idxend;
+	for (i = 0; i < gf->genes; ++i) {
+		gene_t *gi = &gf->gene_features[i];
+		char str[24] = { '\0' };
+		struct fasta *gseq = NULL;
+		int j, k, gseqlen;
+		for (j = 0; j < seqs->ps; ++j) {
+			struct fasta *seq = (struct fasta *)seqs->p[j];
+			if (strcmp(seq->uid, gi->locus) == 0) {
+				gseq = seq;
+				break;
+			}
+		}
+		if (gseq == NULL) {
+			fatal_error("%s %s: unable to focus sequence in fasta by name '%s'\n", argv[0], argv[1], gi->locus);
+		}
+		gseqlen = strlen(gseq->seq);
+		idxstart = gi->start - offset;
+		for (k = offset; k < max; ++k) {
+			int idx = gi->start - k;
+			for (j = 0; j < gf->genes; ++j) {
+				if (j == i) continue;
+				gene_t *gj = &gf->gene_features[j];
+				if (gi->strand == gj->strand && idx >= gj->start && idx <= gj->end)
+					break;
+			}
+			// no overlap
+			if (j == gf->genes) {
+				if (idx < 0 || idx >= gseqlen)
+					fatal_error("%s %s: internal error occurred, the computed index was outside of the sequence length bounds\n", argv[0], argv[1]);
+				str[k + offset] = gseq->seq[idx];
+				str[k + offset + 1] = '\0';
+				idxend = idx;
+			} else {
+				break;
+			}
+		}
+		printf("%s\t%s\t%d\t%d\t%d\t%d\t%d\n", gi->locus_tag, str, gi->start, gi->end, idxstart, idxend, idxend - idxstart);
+	}
+
+	return EXIT_SUCCESS;
+
 }
 
 int test_pairwise_identity(int argc, char *argv[]) {
