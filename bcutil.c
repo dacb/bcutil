@@ -61,9 +61,10 @@ int test_get_upstream(int argc, char *argv[]) {
 	int i;
 	gff_t *gf;
 	struct util_ptr_list *seqs, *outseqs;
+	int offset, max, minlen;
 
-	if (argc != 4)
-		fatal_error("usage: %s %s <gff3 filename> <fasta filename (may be gzipped)>\n", argv[0], argv[1]);
+	if (argc != 7)
+		fatal_error("usage: %s %s <gff3 filename> <fasta filename (may be gzipped)> <start relative to gene start, e.g. -2 to get ATG> <upstream end, e.g. 150> <min sequence length, e.g. 8>\n", argv[0], argv[1]);
 
 	gf = gffopenreadclose(argv[2]);
 	if (!gf) {
@@ -74,9 +75,15 @@ int test_get_upstream(int argc, char *argv[]) {
 	seqs = fasta_read(argv[3]);
 	printf("%s: found %d sequences in fasta file '%s'\n", argv[0], seqs->ps, argv[3]);
 
+	offset = atoi(argv[4]);
+	max = atoi(argv[5]);
+	if (max - offset >= MAX_FASTA_LINE - 1)
+		fatal_error("%s: internal error, upstream requested region larger than MAX_FASTA_LINE\n", argv[0]);
+	minlen = atoi(argv[6]);
+	if (minlen < 0)
+		fatal_error("%s: minimum length is less than 1! (%d)\n", argv[0], minlen);
+
 	printf("locus_tag\tstrand\tstart\tend\tlength\tidxstart\tidxend\tuplength\n");
-	const int offset = -2;
-	const int max = 150;
 	int idxstart, idxend;
 	for (i = 0; i < gf->genes; ++i) {
 		gene_t *gi = &gf->gene_features[i];
@@ -120,8 +127,10 @@ int test_get_upstream(int argc, char *argv[]) {
 				break;
 			}
 		}
-		strrev(str);
-		printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n", gi->locus_tag, str, (gi->strand == MINUS ? "-" : "+"), gi->start, gi->end, (gi->end - gi->start) - 1, idxstart, idxend, slen);
+		if (slen >= minlen) {
+			strrev(str);
+			printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n", gi->locus_tag, str, (gi->strand == MINUS ? "-" : "+"), gi->start, gi->end, (gi->end - gi->start) - 1, idxstart, idxend, slen);
+		}
 	}
 
 	return EXIT_SUCCESS;
