@@ -74,14 +74,15 @@ int test_get_upstream(int argc, char *argv[]) {
 	seqs = fasta_read(argv[3]);
 	printf("%s: found %d sequences in fasta file '%s'\n", argv[0], seqs->ps, argv[3]);
 
+	printf("locus_tag\tstrand\tstart\tend\tlength\tidxstart\tidxend\tuplength\n");
 	const int offset = -2;
-	const int max = 10;
+	const int max = 150;
 	int idxstart, idxend;
 	for (i = 0; i < gf->genes; ++i) {
 		gene_t *gi = &gf->gene_features[i];
-		char str[24] = { '\0' };
+		char str[MAX_FASTA_LINE] = { '\0' };
 		struct fasta *gseq = NULL;
-		int j, k, gseqlen;
+		int j, k, gseqlen, slen = 0;
 		for (j = 0; j < seqs->ps; ++j) {
 			struct fasta *seq = (struct fasta *)seqs->p[j];
 			if (strcmp(seq->uid, gi->locus) == 0) {
@@ -93,27 +94,34 @@ int test_get_upstream(int argc, char *argv[]) {
 			fatal_error("%s %s: unable to focus sequence in fasta by name '%s'\n", argv[0], argv[1], gi->locus);
 		}
 		gseqlen = strlen(gseq->seq);
-		idxstart = gi->start - offset;
+		idxstart = (gi->strand == PLUS ? gi->start - offset : gi->end + offset);
+		idxend = idxstart;
 		for (k = offset; k < max; ++k) {
-			int idx = gi->start - k;
+			int idx = (gi->strand == PLUS ? gi->start - k : gi->end + k);
 			for (j = 0; j < gf->genes; ++j) {
 				if (j == i) continue;
 				gene_t *gj = &gf->gene_features[j];
-				if (gi->strand == gj->strand && idx >= gj->start && idx <= gj->end)
+				if (gi->strand == PLUS && gi->strand == gj->strand && idx >= gj->start && idx < gj->end)
+					break;
+				else if (gi->strand == MINUS && gi->strand == gj->strand && idx > gj->start && idx <= gj->end)
 					break;
 			}
-			// no overlap
+			// no overlap with other ranges, copy this base
 			if (j == gf->genes) {
-				if (idx < 0 || idx >= gseqlen)
-					fatal_error("%s %s: internal error occurred, the computed index was outside of the sequence length bounds\n", argv[0], argv[1]);
-				str[k + offset] = gseq->seq[idx];
-				str[k + offset + 1] = '\0';
+				if (idx - 1 < 0 || idx - 1 >= gseqlen)
+					break;
+				char c = gseq->seq[idx - 1];
+				c = (gi->strand == PLUS ? c : (c == 'A' ? 'T' : (c == 'T' ? 'A' : (c == 'G' ? 'C' : 'G'))));
+				str[k - offset] = c;
+				str[k - offset + 1] = '\0';
 				idxend = idx;
+				++slen;
 			} else {
 				break;
 			}
 		}
-		printf("%s\t%s\t%d\t%d\t%d\t%d\t%d\n", gi->locus_tag, str, gi->start, gi->end, idxstart, idxend, idxend - idxstart);
+		strrev(str);
+		printf("%s\t%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\n", gi->locus_tag, str, (gi->strand == MINUS ? "-" : "+"), gi->start, gi->end, (gi->end - gi->start) - 1, idxstart, idxend, slen);
 	}
 
 	return EXIT_SUCCESS;
