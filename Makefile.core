@@ -8,7 +8,7 @@ OBJS	= $(SRCS:.c=.o)
 PIC_OBJS= $(OBJS:.o=_PIC.o)
 AR	= util.a
 #SO	= util.so
-BINS	= $(AR) test $(SO) 
+BINS	= $(AR) bcutil $(SO) 
 
 default: all
 
@@ -27,8 +27,8 @@ util.a: $(OBJS)
 	ar rc $@ $(OBJS)
 	ranlib $@
 
-test: $(AR) test.c
-	$(CC) $(CFLAGS) test.c $(AR) -o $@ -lz $(LIBS)
+bcutil: $(AR) bcutil.c
+	$(CC) $(CFLAGS) bcutil.c $(AR) -o $@ -lz $(LIBS)
 
 Makefile.depend:
 	touch Makefile.depend
