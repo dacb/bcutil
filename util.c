@@ -280,6 +280,25 @@ wchar_t *wsndup(const wchar_t *fmt, ...) {
 	}
 }
 
+void strrev(char *str) {
+	char temp, *end_ptr;
+
+	// handle NULL or empty string
+	if( str == NULL || !(*str) )
+		return;
+
+	end_ptr = str + strlen(str) - 1;
+
+	// swap
+	while( end_ptr > str ) {
+		temp = *str;
+		*str = *end_ptr;
+		*end_ptr = temp;
+		str++;
+		end_ptr--;
+	}
+}
+
 int util_qsort_blob_by_idx(const void *a, const void *b) {
         struct util_qsort_blob *A = (struct util_qsort_blob *)a, *B = (struct util_qsort_blob *)b;
 

@@ -90,6 +90,7 @@ void util_stack_destroy(struct util_stack *stack);
 
 char *sndup(const char *fmt, ...);
 wchar_t *wsndup(const wchar_t *fmt, ...);
+void strrev(char *str);
 
 #define wcscat_resize(desc, src) wcscat(desc = (wchar_t *)renew(desc, (wcslen(desc) + wcslen(src) + 1) * sizeof(wchar_t)), src);
 #ifndef wcsdup
