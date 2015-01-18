@@ -83,7 +83,7 @@ int test_get_upstream(int argc, char *argv[]) {
 	if (minlen < 0)
 		fatal_error("%s: minimum length is less than 1! (%d)\n", argv[0], minlen);
 
-	printf("locus_tag\tstrand\tstart\tend\tlength\tidxstart\tidxend\tuplength\n");
+	printf("locus_tag\tsequence\tstrand\tstart\tend\tlength\tidxstart\tidxend\tuplength\n");
 	int idxstart, idxend;
 	for (i = 0; i < gf->genes; ++i) {
 		gene_t *gi = &gf->gene_features[i];
